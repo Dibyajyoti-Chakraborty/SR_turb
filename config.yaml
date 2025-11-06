@@ -1,0 +1,110 @@
+# Configuration file for Swin Transformer Super-Resolution training
+
+# ============================================================
+# Data Configuration
+# ============================================================
+data:
+  data_root: "/global/cfs/projectdirs/m5021/dj/data/dns_256_re_1e3_dt_0.4487989505128276"
+  upscale_factor: 8
+  normalize_data: true
+
+# ============================================================
+# Model Configuration
+# ============================================================
+model:
+  img_size: 32              # Input LR image size (target size is 256, so 256 // 8 = 32)
+  in_chans: 2               # u, v velocity components
+  out_chans: 2              # u, v velocity components
+  embed_dim: 384             # Embedding dimension
+  depths: [6, 6, 6, 6]      # Number of transformer blocks in each stage
+  num_heads: [6, 6, 6, 6]   # Number of attention heads
+  window_size: 8            # Window size for attention
+  mlp_ratio: 4.0            # MLP hidden dim ratio
+  qkv_bias: true
+  drop_rate: 0.0
+  attn_drop_rate: 0.0
+  drop_path_rate: 0.1       # Stochastic depth rate
+  upscale: 8
+  img_range: 1.0
+  upsampler: 'pixelshuffle'
+
+# ============================================================
+# Training Configuration
+# ============================================================
+training:
+  batch_size: 64
+  num_epochs: 50
+  num_workers: 4
+  pin_memory: true
+  
+  # Learning rate and optimizer
+  learning_rate: 0.0002
+  weight_decay: 0.0
+  beta1: 0.9
+  beta2: 0.999
+  
+  # Learning rate scheduler
+  scheduler_type: 'cosine'  # Options: 'cosine', 'step', 'plateau', 'exponential'
+  
+  # For CosineAnnealingLR
+  T_max: 50
+  eta_min: 1.0e-7
+  
+  # For StepLR
+  step_size: 50
+  gamma: 0.5
+  
+  # For ReduceLROnPlateau
+  patience: 10
+  factor: 0.5
+  
+  # Warmup
+  warmup_epochs: 5
+  warmup_multiplier: 0.1
+  
+  # Gradient clipping
+  clip_grad_norm: 1.0
+  
+  # Mixed precision training
+  use_amp: true
+
+# ============================================================
+# Loss Configuration
+# ============================================================
+loss:
+  loss_type: 'l1'  # Options: 'l1', 'l2', 'smooth_l1'
+
+# ============================================================
+# Logging and Checkpointing
+# ============================================================
+logging:
+  log_interval: 10          # Log every N batches
+  val_interval: 1           # Validate every N epochs
+  save_interval: 10         # Save checkpoint every N epochs
+  
+  # Directories
+  exp_name: "swinsr_x8"
+  output_dir: "./experiments/swinsr_x8"
+  checkpoint_dir: "./experiments/swinsr_x8/checkpoints"
+  log_dir: "./experiments/swinsr_x8/logs"
+  
+  # Resume training
+  resume: false
+  resume_checkpoint: null
+  
+  # Evaluation
+  save_best_only: true      # Only save best model
+  metric: 'val_loss'        # Metric to monitor for best model
+
+# ============================================================
+# Reproducibility
+# ============================================================
+reproducibility:
+  seed: 42
+  deterministic: false      # Set to true for reproducibility
+
+# ============================================================
+# Device Configuration
+# ============================================================
+device: 'cuda'              # 'cuda' or 'cpu'
+
