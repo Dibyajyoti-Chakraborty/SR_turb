@@ -89,8 +89,8 @@ logging:
   log_dir: "./experiments/swinsr_x8/logs"
   
   # Resume training
-  resume: false
-  resume_checkpoint: null
+  resume: true
+  resume_checkpoint: "./experiments/swinsr_x8/checkpoints/best_model.pth" # Keep as null to auto-find best checkpoint
   
   # Evaluation
   save_best_only: true      # Only save best model

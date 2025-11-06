@@ -254,7 +254,12 @@ def load_checkpoint(checkpoint_path, model, optimizer=None, scheduler=None):
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     
     if scheduler is not None and 'scheduler_state_dict' in checkpoint:
-        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        # Handle WarmupScheduler wrapper - load into the wrapped scheduler
+        if isinstance(scheduler, WarmupScheduler):
+            scheduler.after_scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+            scheduler.current_epoch = start_epoch - 1  # Update warmup scheduler's epoch tracker
+        else:
+            scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
     
     print(f"Loaded checkpoint from epoch {checkpoint.get('epoch', 0)}")
     return start_epoch, best_loss
@@ -449,13 +454,39 @@ def train(config):
     start_epoch = 0
     best_loss = float('inf')
     
-    if config.resume and config.resume_checkpoint:
-        if os.path.exists(config.resume_checkpoint):
-            start_epoch, best_loss = load_checkpoint(
-                config.resume_checkpoint, model, optimizer, scheduler
-            )
+    if config.resume:
+        # Determine checkpoint path
+        checkpoint_path = None
+        
+        if config.resume_checkpoint:
+            # Use explicitly provided checkpoint
+            checkpoint_path = config.resume_checkpoint
         else:
-            print(f"Warning: Checkpoint {config.resume_checkpoint} not found. Starting from scratch.")
+            # Try to find best_model.pth in checkpoint_dir
+            if os.path.exists(config.checkpoint_dir):
+                best_checkpoint = os.path.join(config.checkpoint_dir, 'best_model.pth')
+                if os.path.exists(best_checkpoint):
+                    checkpoint_path = best_checkpoint
+                    print(f"Found best model checkpoint: {best_checkpoint}")
+                else:
+                    # Try to find latest checkpoint
+                    checkpoint_files = [f for f in os.listdir(config.checkpoint_dir) 
+                                      if f.startswith('checkpoint_epoch_') and f.endswith('.pth')]
+                    if checkpoint_files:
+                        # Sort by epoch number and get latest
+                        checkpoint_files.sort(key=lambda x: int(x.split('_')[-1].split('.')[0]))
+                        latest_checkpoint = os.path.join(config.checkpoint_dir, checkpoint_files[-1])
+                        checkpoint_path = latest_checkpoint
+                        print(f"Found latest checkpoint: {latest_checkpoint}")
+        
+        if checkpoint_path and os.path.exists(checkpoint_path):
+            start_epoch, best_loss = load_checkpoint(
+                checkpoint_path, model, optimizer, scheduler
+            )
+        elif checkpoint_path:
+            print(f"Warning: Checkpoint {checkpoint_path} not found. Starting from scratch.")
+        else:
+            print(f"Warning: No checkpoints found in {config.checkpoint_dir}. Starting from scratch.")
     
     # Training loop
     print("\n" + "=" * 80)
