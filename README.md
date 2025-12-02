@@ -54,6 +54,6 @@ All training parameters are specified in `config.yaml`. Key sections:
 - `swin_sr.py`: Swin Transformer model implementation
 - `dataset.py`: Turbulence dataset loader
 - `config.yaml`: Configuration file
-- `viz.ipynb`: Visualization notebook
+- `viz.ipynb`: Demo visualization notebook showing super-resolution results after 1 epoch
 - `experiments/`: Training outputs (checkpoints, logs)
 
